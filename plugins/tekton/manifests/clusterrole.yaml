@@ -1,5 +1,5 @@
-kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
 metadata:
   name: janus-idp-tekton-plugin
 rules:
@@ -64,8 +64,11 @@ rules:
   - apiGroups:
       - tekton.dev
     resources:
+      - pipelines
       - pipelineruns
+      - tasks
       - taskruns
     verbs:
       - get
+      - watch
       - list

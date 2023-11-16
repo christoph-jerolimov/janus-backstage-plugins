@@ -12,16 +12,22 @@ The Tekton plugin enables you to visualize the `PipelineRun` resources available
 
 - The following `customResources` component is added in the [`app-config.yaml`](https://backstage.io/docs/features/kubernetes/configuration#configuring-kubernetes-clusters) file:
   ```yaml
-   kubernetes:
-     ...
-     customResources:
-       - group: 'tekton.dev'
-         apiVersion: 'v1beta1'
-         plural: 'pipelineruns'
-       - group: 'tekton.dev'
-         apiVersion: 'v1beta1'
-         plural: 'taskruns'
+  kubernetes:
+    customResources:
+      - group: tekton.dev
+        apiVersion: v1
+        plural: pipelines
+      - group: tekton.dev
+        apiVersion: v1
+        plural: pipelineruns
+      - group: tekton.dev
+        apiVersion: v1
+        plural: tasks
+      - group: tekton.dev
+        apiVersion: v1
+        plural: taskruns
   ```
+  Note: The current Tekton plugin for Backstage works also with `apiVersion: v1beta1` if your operator doesn't support the v1 version yet.
 - The Kubernetes plugin is configured and connects to the cluster using a `ServiceAccount`.
 - The [`ClusterRole`](https://backstage.io/docs/features/kubernetes/configuration#role-based-access-control) must be granted for custom resources (PipelineRuns and TaskRuns) to `ServiceAccount` accessing the cluster.
 - To view the pod logs, you have granted permissions for `pods/log`.
@@ -30,33 +36,40 @@ The Tekton plugin enables you to visualize the `PipelineRun` resources available
   You can use the following code to grant the `ClusterRole` for custom resources and pod logs:
 
   ```yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: backstage-read-only
+  rules:
+    - apiGroups:
+        - ""
+      resources:
+        - pods/log
+      verbs:
+        - get
+        - list
+        - watch
     ...
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: ClusterRole
-    metadata:
-      name: backstage-read-only
-    rules:
-      - apiGroups:
-          - ""
-        resources:
-          - pods/log
-        verbs:
-          - get
-          - list
-          - watch
-      ...
-      - apiGroups:
-          - tekton.dev
-        resources:
-          - pipelineruns
-          - taskruns
-        verbs:
-          - get
-          - list
-
+    - apiGroups:
+        - tekton.dev
+      resources:
+        - pipelineruns
+        - taskruns
+      verbs:
+        - get
+        - list
+        - watch
   ```
 
   > Tip: You can use the [prepared manifest for a read-only `ClusterRole`](https://raw.githubusercontent.com/janus-idp/backstage-plugins/main/plugins/tekton/manifests/clusterrole.yaml), which provides access for both Kubernetes plugin and Tekton plugin.
+  >
+  > After adding this ClusterRole you can create a new ServiceAccount, that links this ClusterRole with the `oc` command:
+  >
+  > ```
+  > oc create serviceaccount janus-idp-tekton-plugin-sa
+  > oc adm policy add-cluster-role-to-user janus-idp-tekton-plugin -z janus-idp-tekton-plugin-sa
+  > oc create token --duration=168h janus-idp-tekton-plugin-sa
+  > ```
 
 - The following annotation is added to the entity's `catalog-info.yaml` file to identify whether an entity contains the Kubernetes resources:
 
